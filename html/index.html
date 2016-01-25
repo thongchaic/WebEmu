@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<HTML>
+<HEAD>
+<title>Web Emulator</title>
+<script src="js/jquery-2.1.4.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/interact.min.js"></script>
+<script src="js/three.min.js"></script>
+<script src="js/toastr.min.js"></script>
+
+<link rel="stylesheet" href="css/bootstrap.min.css">
+<link rel="stylesheet" href="css/bootstrap-theme.min.css">
+<link rel="stylesheet" href="css/toastr.min.css">
+<link rel="stylesheet" href="css/custom.css">
+
+<style>
+	body {
+		margin: 0px;
+	}	
+</style>
+
+</HEAD>
+<BODY>
+<script>
+var ctx;
+var debug;
+var node1, node2;
+var cfgs;
+var ctx;
+var nodes = [];
+var nodepos =  new Array(5);
+$(document).ready(function(){
+
+	var W = window.innerWidth;
+	var H = window.innerHeight;
+	container = document.getElementById("container");
+	toastr.options = {
+	  "closeButton": true,
+	  "debug": false,
+	  "newestOnTop": true,
+	  "progressBar": false,
+	  "positionClass": "toast-top-right",
+	  "preventDuplicates": true,
+	  "onclick": null,
+	  "showDuration": "200",
+	  "hideDuration": "500",
+	  "timeOut": "6000",
+	  "extendedTimeOut": "7000",
+	  "showEasing": "swing",
+	  "hideEasing": "linear",
+	  "showMethod": "fadeIn",
+	  "hideMethod": "fadeOut"
+	}
+
+	var jqxhr = $.getJSON( "cfg", function() {
+		  console.log( "success" );
+		});
+		jqxhr.complete(function(data) {
+		  $.each( data, function( key, val ) {
+			 if(key=="responseJSON"){//console.log("KEY:"+key+ " -> "+val );
+				cfgs = val;
+				console.log( "complete : "+cfgs.version );
+				console.log(cfgs.nodes);
+				var cfgnodes = cfgs.nodes;
+
+				//container.style.border = "thick solid #0000FF";
+				//container.style.backgroundImage = "url('images/nm1.jpg')";
+				for(var i=0;i<cfgnodes.length;i++){
+					node = document.createElement("img");
+					node.id = cfgnodes[i].id;
+					node.className = 'draggable';
+
+					switch(cfgnodes[i].type){
+						case "rj45": node.src = 'images/rj45.gif'; break;
+						case "lanswitch": node.src = 'images/lanswitch.gif'; break;
+						case "router": node.src = 'images/router.gif'; $(node).hover(hoverIn); break;
+					}
+
+					if(cfgnodes[i].model != ""){
+						if(cfgnodes[i].model=="PC"){
+							node.src = 'images/pc.gif'; 
+						}
+					}
+
+					console.log(cfgnodes[i].coords);
+					node.style.position = 'absolute';
+					node.style.left = (cfgnodes[i].coords.x-15)+'px';
+					node.style.top = (cfgnodes[i].coords.y-15)+'px';
+					container.appendChild(node);
+					var net="";
+					var infs = cfgnodes[i].infs;
+					
+					for(var j=0;j<infs.length;j++){
+						net += infs[j].interface+":"+infs[j].ifnet+"<BR>";
+						console.log(infs[j].ifnet);
+					}
+
+					var nodelb =  document.createElement("p");
+					nodelb.innerHTML = "["+cfgnodes[i].id+"] "+net;
+					nodelb.style.position = 'absolute';
+					nodelb.style.left = (cfgnodes[i].lbcoords.x-15)+'px';
+					nodelb.style.top = (cfgnodes[i].lbcoords.y-15)+'px';
+					container.appendChild(nodelb);
+					
+					nodeConnector(cfgnodes[i].id,i,cfgnodes[i].coords.x,cfgnodes[i].coords.y);
+
+					node.addEventListener("dblclick", onDbClick);
+					//node.addEventListener("mouseover ", hoverIn, false );
+					
+					console.log(node);
+					nodes.push(node);
+				}
+			 }
+		  });
+		});
+
+	
+
+	debug = document.getElementById("debug");
+	var menuYloc = parseInt($("#floatLabel").css("bottom").substring(0,$("#floatLabel").css("bottom").indexOf("px")));
+	$(window).scroll(function () { 
+        var offset = menuYloc-$(document).scrollTop()+"px";
+        $("#floatLabel").animate({bottom:offset},{duration:100,queue:false});
+    });
+	
+	//Drag ==> http://interactjs.io/
+	
+	
+
+	 
+
+	/*interact('.draggable').draggable({
+	    inertia: true,
+	    restrict: {
+	      restriction: "parent",
+	      endOnly: true,
+	      elementRect: { top: 0, left: 0, bottom: 1, right: 1 }
+	    },
+	    autoScroll: true,
+	    onmove: dragMoveListener,
+	    onend: function (event) {
+	      var textEl = event.target.querySelector('p');
+	      textEl && (textEl.textContent =
+	        'moved a distance of '
+	        + (Math.sqrt(event.dx * event.dx +
+	                     event.dy * event.dy)|0) + 'px');
+	    }
+	  });
+
+	  function dragMoveListener (event) {
+	    var target = event.target,
+	        x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx,
+	        y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+	    target.style.webkitTransform =
+	    target.style.transform =
+	      'translate(' + x + 'px, ' + y + 'px)';
+	    target.setAttribute('data-x', x);
+	    target.setAttribute('data-y', y);
+
+	    for(var i=0;i<nodes.length;i++){
+	    	if(event.target.id==nodes[i].id){
+	    		nodepos[i] = new THREE.Vector2(event.clientX,event.clientY);
+	    	}
+	    }*/
+
+	   /* if(event.target.id==node1.id){
+	    	//console.log(event.target.id);
+	    	node1pos.x = event.clientX-100;
+	    	node1pos.y = event.clientY-100;
+
+	    }else if(event.target.id==node2.id){
+	    	node2pos.x = event.clientX-100;
+	    	node2pos.y = event.clientY-100;
+	    }*/
+
+	 
+	  
+	   // draw();
+	  //}
+	//window.dragMoveListener = dragMoveListener;
+
+	$("#btInfo").click(function(e){
+		//console.log(e);
+		toastr["info"]("Funded by Faculty of Science and Technology, Surindra Rajabhat University", "WebEmulator")
+	});
+
+	/*document.addEventListener("mousemove",onMouseMove,false);
+	document.addEventListener("mousedown",onMouseDown,false);
+	document.addEventListener("mouseup",onMouseUp,false);
+	document.addEventListener("keydown",onKeyDown,false);
+	document.addEventListener("keyup",onKeyUp,false);*/
+
+});
+function nodeConnector(id,index,x1,y1){
+	/*
+	ctx.moveTo(x1,y1);
+					ctx.lineTo(cfgnodes[j].coords[0],cfgnodes[j].coords[1]);
+					ctx.stroke();
+	*/
+	//if(index!=2)return;
+	console.log("DrawID:"+id);
+	var cfgnodes = cfgs.nodes;
+	var peers = cfgnodes[index].peer;
+	for(var i=0;i<peers.length;i++){
+		for(var j=0;j<cfgnodes.length;j++){
+			
+			if(peers[i] == cfgnodes[j].id){
+				console.log(peers[i]+" == "+cfgnodes[j].id);
+				console.log(x1+","+y1+","+cfgnodes[j].coords.x+","+cfgnodes[j].coords.y);
+				
+				drawline(x1,y1,cfgnodes[j].coords.x,cfgnodes[j].coords.y);
+			}
+
+		}
+	}
+}
+function hoverIn(event){
+	//toastr["info"]("In", "TT");
+	//console.log("In -- "+event.target);
+	var d = new Date();
+	var start = d.getMilliseconds();
+	var cmd1 =  document.getElementById("command1").checked;
+	var cmd2 = document.getElementById("command2").checked;
+	var cmd3 = document.getElementById("command3").checked;
+	var cmd4 = document.getElementById("command4").checked;
+	var cmd5 = document.getElementById("command5").checked;
+	var cmd6 = document.getElementById("command6").checked;
+	var cmd7 = document.getElementById("command7").checked;
+	var cmd8 = document.getElementById("command8").checked;
+
+	var getcmd = "ip route";
+	if(cmd1){
+		getcmd = "ip route";
+	}else if(cmd2){
+		getcmd = "ifconfig";
+	}else if(cmd3){
+		getcmd = "ps";
+	}else if(cmd4){
+		getcmd = "tc filter show";
+	}else if(cmd5){
+		getcmd = "tc qdisc show";
+	}else if(cmd6){
+		getcmd = "arp -an";
+	}else if(cmd7){
+		getcmd = "iptables -L";
+	}else if(cmd8){
+		getcmd = "ipset -L";
+	}
+
+	$.get( "du/"+event.target.id+"/"+getcmd, function( data ) {
+	 	toastr["info"](data,""+event.target.id);
+	 	d = new Date();
+		var stop = d.getMilliseconds();
+		var delay = stop-start;
+		if(delay>0)console.log(delay);
+		//console.log("Out -- "+event.target);
+	});
+}
+function hoverOut(event){
+
+}
+function onDbClick(event){
+	var cfgnodes = cfgs.nodes;
+	for(var i=0;i<cfgnodes.length;i++){
+		//console.log("Node => "+event.target.id+" : "+nodes[i].id);
+		if(event.target.id == cfgnodes[i].id){
+			//console.log("Node => "+event.target.id+" :> "+cfgnodes[i].ip);
+			console.log(cfgnodes[i].infs);
+			var infs = cfgnodes[i].infs;
+			for(var j=0;j<infs.length;j++){
+				if(infs[j].interface == "eth0"){
+					window.open("http://"+infs[j].ip);
+					break;
+				}
+			}
+			//window.open("http://"+cfgnodes[i].ip);
+		}
+	}
+	
+}
+ function drawline(ax, ay, bx, by) {
+     console.log('ax: ' + ax);
+     console.log('ay: ' + ay);
+     console.log('bx: ' + bx);
+     console.log('by: ' + by);
+
+
+     if (ax > bx) {
+         bx = ax + bx;
+         ax = bx - ax;
+         bx = bx - ax;
+         by = ay + by;
+         ay = by - ay;
+         by = by - ay;
+     }
+
+
+     console.log('ax: ' + ax);
+     console.log('ay: ' + ay);
+     console.log('bx: ' + bx);
+     console.log('by: ' + by);
+
+     var angle = Math.atan((ay - by) / (bx - ax));
+     console.log('angle: ' + angle);
+
+     angle = (angle * 180 / Math.PI);
+     console.log('angle: ' + angle);
+     angle = -angle;
+     console.log('angle: ' + angle);
+
+     var length = Math.sqrt((ax - bx) * (ax - bx) + (ay - by) * (ay - by));
+     console.log('length: ' + length);
+
+     var style = ""
+     style += "left:" + (ax) + "px;"
+     style += "top:" + (ay) + "px;"
+     style += "width:" + length + "px;"
+     style += "height:1px;"
+     style += "background-color:black;"
+     style += "position:absolute;"
+     style += "transform:rotate(" + angle + "deg);"
+     style += "-ms-transform:rotate(" + angle + "deg);"
+     style += "transform-origin:0% 0%;"
+     style += "-moz-transform:rotate(" + angle + "deg);"
+     style += "-moz-transform-origin:0% 0%;"
+     style += "-webkit-transform:rotate(" + angle + "deg);"
+     style += "-webkit-transform-origin:0% 0%;"
+     style += "-o-transform:rotate(" + angle + "deg);"
+     style += "-o-transform-origin:0% 0%;"
+     style += "-webkit-box-shadow: 0px 0px 2px 2px rgba(0, 0, 0, .1);"
+     style += "box-shadow: 0px 0px 2px 2px rgba(0, 0, 0, .1);"
+     style += "z-index:99;"
+     $("<div style='" + style + "'></div>").appendTo('#container');
+ }
+
+function onKeyUp(event){
+	
+}
+function onKeyDown(event){
+	
+}
+
+function onMouseUp(event){
+	
+}
+
+function onMouseMove(event){
+	debug.innerHTML=event.clientX+", "+event.clientY;
+}
+function onMouseDown(event){
+	
+}
+</script>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div id="topmenu" class="input-group">
+			<button id="btInfo" type="button" class="btn btn-info">Info</button>&nbsp;&nbsp;
+			<button id="btUpload" type="button" class="btn btn-info">Upload</button>&nbsp;&nbsp;
+			<button id="btStart" type="button" class="btn btn-warning">Stop</button>&nbsp;&nbsp;
+		  	<label>System Monitor:</label>&nbsp;
+		  	<label id="cpumon">CPU: 0.3%</label>,&nbsp;
+		  	<label id="rammon">RAM: 835MB</label>
+		  	<br><label>Widget</label>&nbsp;&nbsp;
+		  	<input type="radio" id="command1" name="command" value="ip route" checked>ip route
+  			<input type="radio" id="command2" name="command" value="ifconfig">ifconfig
+  			<input type="radio" id="command3" name="command" value="ps">ps
+  			<input type="radio" id="command4" name="command" value="tc filter show">tc filter
+  			<input type="radio" id="command5" name="command" value="tc qdisc show">tc qdisc
+  			<input type="radio" id="command6" name="command" value="arp -a">arp -a
+  			<input type="radio" id="command7" name="command" value="iptables -L">iptables -L 
+  			<input type="radio" id="command8" name="command" value="ipset -L">ipset -L 
+    </div>
+
+  </div>
+</div>
+<!--form id        =  "uploadForm"
+     enctype   =  "multipart/form-data"
+     action    =  "/upload"
+     method    =  "post"
+>
+<input type="file" name="recfile" />
+<input type="submit" value="Upload Image" name="submit">
+</form-->
+<BR><BR><BR>
+
+<div id="container">
+
+</div>
+
+<div id="debug"></div>
+<div id="floatLabel">The WebEmulator is funded by Faculty of Science and Technology, Surindra Rajabhat University.</div>
+</BODY>
+</HTML>

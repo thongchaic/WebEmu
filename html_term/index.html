@@ -1,0 +1,45 @@
+<!doctype html>
+<title>Network Emulator</title>
+<style>
+  html {
+    background: #555;
+  }
+</style>
+<script src="/socket.io/socket.io.js"></script>
+<script src="term.js"></script>
+<script>
+;(function() {
+  window.onload = function() {
+    var socket = io.connect();
+    socket.on('connect', function() {
+      var term = new Terminal({
+        cols: 150,
+        rows: 30,
+        useStyle: true,
+        screenKeys: true,
+        cursorBlink: false
+      });
+
+      term.on('data', function(data) {
+        socket.emit('data', data);
+      });
+
+      term.on('title', function(title) {
+        document.title = title;
+      });
+
+      term.open(document.body);
+
+      term.write('\x1b[31mWelcome to Web emulator\x1b[m\r\n');
+
+      socket.on('data', function(data) {
+        term.write(data);
+      });
+
+      socket.on('disconnect', function() {
+        term.destroy();
+      });
+    });
+  };
+}).call(this);
+</script>
